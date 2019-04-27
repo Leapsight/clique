@@ -18,6 +18,14 @@
 
 -record(state, {output=[], size={80,20}}).
 
+-ifdef(OTP_RELEASE). %% => OTP is 21 or higher
+-define(EXCEPTION(Class, Reason, Stacktrace), Class:Reason:Stacktrace).
+-define(STACKTRACE(Stacktrace), Stacktrace).
+-else.
+-define(EXCEPTION(Class, Reason, _), Class:Reason).
+-define(STACKTRACE(_), erlang:get_stacktrace()).
+-endif.
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -114,8 +122,8 @@ io_request({put_chars, M, F, A}, State) ->
     try apply(M, F, A) of
         Chars ->
             io_request({put_chars, Chars}, State)
-    catch C:T ->
-            {{error, {C,T, erlang:get_stacktrace()}}, State}
+    catch ?EXCEPTION(C, T, S) ->
+            {{error, {C,T, ?STACKTRACE(S)}}, State}
     end;
 io_request({put_chars, _Enc, Chars}, State) ->
     io_request({put_chars, Chars}, State);
